@@ -1,0 +1,105 @@
+const assert=require('node:assert/strict');
+const path=require('node:path');
+const {pathToFileURL}=require('node:url');
+const L=require('./assets/model.js');
+let chromium;try{({chromium}=require('playwright'));}catch(e){({chromium}=require('C:/Users/User/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright'));}
+const date='2026-11-10',month='2026-11';
+const entry=(id,amount,category,type)=>({id,date,amount,category,card:'shinhan',memo:'',...(type?{type}:{})});
+async function main(){
+ const legacy=L.defaults();delete legacy.fixedCategories;legacy.entries=[entry('l',45000,'food')];
+ const oldBook={version:2,activeCalendar:'home',calendars:[{id:'home',name:'집안 가계부',ledger:legacy}]};
+ const upgraded=L.validateBook(oldBook);
+ assert.equal(upgraded.version,3);
+ assert.deepEqual(L.activeLedger(upgraded).entries,legacy.entries);
+ assert.equal(L.entryType(L.activeLedger(L.validateBook(legacy)).entries[0]),'general');
+ assert.deepEqual(L.activeLedger(upgraded).fixedCategories.map(c=>c.name),['관리비','전기요금','하이패스','주유비','보험금','모임회비']);
+ const ledger=L.activeLedger(upgraded);
+ ledger.categories.push({id:'maintenance',name:'일반 수리비'});
+ ledger.entries.push(entry('repair',5000,'maintenance'),entry('fixed',150000,'maintenance','fixed'));
+ const indexed=L.summarize(ledger,month),day=indexed.byDay.get(date);
+ assert.deepEqual([day.generalCount,day.generalSum,day.fixedCount,day.fixedSum],[2,50000,1,150000]);
+ assert.equal(L.total(L.monthly(ledger,month,'maintenance','',indexed)),5000);
+ assert.equal(L.total(L.monthly(ledger,month,'fixed:maintenance','',indexed)),150000);
+ assert.equal(L.cardState(ledger,month,'shinhan',indexed).sum,200000);
+ assert.equal(L.monthly(ledger,'2026-12').length,0);
+ assert.deepEqual(L.validateBook(JSON.parse(JSON.stringify(upgraded))),upgraded);
+ for(const bad of [entry('bad',1,'food','fixed'),entry('bad',1,'maintenance','other'),entry('bad',1,'electricity')]){
+  const invalid=structuredClone(ledger);invalid.entries.push(bad);assert.throws(()=>L.validate(invalid));
+ }
+ const browser=await chromium.launch({executablePath:'C:/Program Files/Google/Chrome/Application/chrome.exe',headless:true,args:['--disable-gpu']});
+ try{
+  const page=await browser.newPage({viewport:{width:390,height:844},deviceScaleFactor:2,isMobile:true,hasTouch:true});
+  await page.clock.setFixedTime(new Date(2026,10,10,12));
+  const errors=[];page.on('pageerror',e=>errors.push(e.message));
+  await page.goto(pathToFileURL(path.join(__dirname,'assets/index.html')).href);
+  await page.evaluate(raw=>localStorage.setItem('dalsseum',raw),JSON.stringify(oldBook));await page.reload();
+  const button=name=>page.getByRole('button',{name,exact:true});
+  const choose=type=>page.locator('.expense-type label').filter({hasText:type}).click();
+  const selected=page.locator('.day.selected');
+  const selectCategory=page.locator('#category');
+  assert.equal(await page.title(),'살림결');
+  assert.equal(await page.locator('header .brand-icon').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(133, 43, 64)');
+  assert.equal(await selected.locator('.count').innerText(),'1건');
+  assert.equal(await selected.locator('.fixed-count').count(),0);
+  await button('＋ 지출 입력').click();await page.locator('#amount').fill('150000');await page.locator('#memo').fill('이번 달 관리비');
+  await choose('고정 지출');assert.equal(await page.locator('#amount').inputValue(),'150,000');assert.equal(await selectCategory.locator('option').count(),6);
+  await selectCategory.selectOption('electricity');await choose('일반 지출');assert.equal(await selectCategory.inputValue(),'food');
+  await choose('고정 지출');assert.equal(await selectCategory.inputValue(),'electricity');
+  await selectCategory.selectOption('maintenance');await button('지출 저장').click();
+  assert.equal(await selected.locator('.count').innerText(),'1건');
+  assert.equal(await selected.locator('.amt').innerText(),'45,000');
+  assert.match(await selected.locator('.fixed-count').textContent(),/고정지출\s*1건/);
+  assert.equal(await selected.locator('.fixed-count').evaluate(el=>getComputedStyle(el).color),'rgb(169, 46, 58)');
+  assert.match(await page.locator('.hero .money').innerText(),/195,000/);
+  assert.equal(await page.locator('.entry .fixed-badge').count(),1);
+  await button('＋ 지출 입력').click();await choose('고정 지출');await page.locator('#amount').fill('32000');await page.locator('#memo').fill('작성 중인 메모');
+  await button('＋ 항목 추가').click();await page.locator('#catName').fill('인터넷 요금');await button('저장').click();
+  assert.equal(await page.locator('input[name=type]:checked').inputValue(),'fixed');
+  assert.equal(await selectCategory.locator('option:checked').innerText(),'인터넷 요금');
+  assert.equal(await page.locator('#amount').inputValue(),'32,000');assert.equal(await page.locator('#memo').inputValue(),'작성 중인 메모');
+  await page.locator('#entryDate').fill('2026-11-11');await button('지출 저장').click();
+  assert.equal(await selected.locator('.count').count(),0);
+  assert.match(await selected.locator('.fixed-count').textContent(),/고정지출\s*1건/);
+  await page.reload();
+  assert.match(await selected.locator('.fixed-count').textContent(),/고정지출\s*1건/);
+  await page.locator('nav [data-tab=report]').click();await page.getByLabel('지출 구분으로 조회').selectOption('fixed');
+  assert.match(await page.locator('.hero .money').innerText(),/182,000/);
+  await page.getByLabel('지출 용도로 조회').selectOption('fixed:maintenance');
+  assert.match(await page.locator('.hero .money').innerText(),/150,000/);
+  await page.getByLabel('지출 구분으로 조회').selectOption('general');
+  assert.match(await page.locator('.hero .money').innerText(),/45,000/);
+  await page.locator('nav [data-tab=cards]').click();
+  assert.match(await page.locator('.panel').first().innerText(),/227,000원/);
+  await page.locator('nav [data-tab=settings]').click();
+  const fixedSettings=page.getByRole('region',{name:'고정 지출 항목'});
+  await fixedSettings.locator('.settingsrow').filter({hasText:'인터넷 요금'}).getByRole('button',{name:'수정',exact:true}).click();
+  await page.locator('#catName').fill('인터넷 이용료');await button('저장').click();
+  assert.match(await fixedSettings.innerText(),/인터넷 이용료/);
+  assert.doesNotMatch(await page.getByRole('region',{name:'일반 지출 용도'}).innerText(),/인터넷 이용료/);
+  await fixedSettings.locator('.settingsrow').filter({hasText:'인터넷 이용료'}).getByRole('button',{name:'삭제',exact:true}).click();
+  assert.match(await page.locator('#toast').innerText(),/기록에 사용 중/);
+  await page.locator('nav [data-tab=calendar]').click();
+  const stored=await page.evaluate(()=>localStorage.getItem('dalsseum'));
+  await page.locator('.entry').filter({hasText:'관리비'}).click();assert.equal(await page.locator('input[name=type]:checked').inputValue(),'fixed');
+  await choose('일반 지출');await button('수정 저장').click();
+  assert.equal(await selected.locator('.count').innerText(),'2건');assert.equal(await selected.locator('.fixed-count').count(),0);
+  await page.evaluate(raw=>receiveBackup(raw),stored);await button('확인').click();
+  assert.match(await selected.locator('.fixed-count').textContent(),/고정지출\s*1건/);
+  await button('＋ 새 달력').click();await page.locator('#calendarNameInput').fill('별도 달력');await button('달력 만들기').click();
+  assert.equal(await page.locator('.day .fixed-count').count(),0);
+  await page.locator('#calendarSelect').selectOption('home');
+  assert.equal(await page.locator('.day .fixed-count').count(),2);
+  await button('다음 달').click();
+  assert.equal(await page.locator('.day .fixed-count').count(),0);
+  await button('이번 달').click();
+  for(const width of [320,390,600]){
+   await page.setViewportSize({width,height:844});
+   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth&&Array.from(document.querySelectorAll('.fixed-count')).every(el=>el.scrollWidth<=el.clientWidth)));
+  }
+  await page.setViewportSize({width:390,height:1080});await page.addStyleTag({content:'#toast{display:none!important}'});await page.screenshot({path:path.join(__dirname,'build/fixed-calendar.png')});
+  await button('＋ 지출 입력').click();await choose('고정 지출');await page.screenshot({path:path.join(__dirname,'build/fixed-form.png')});
+  assert.deepEqual(errors,[]);
+  console.log('PASS: fixed expense migration, types, day totals, editing, custom items, card/report totals, backups, calendar isolation, and narrow layouts.');
+ }finally{await browser.close();}
+}
+main().catch(e=>{console.error(e);process.exitCode=1;});

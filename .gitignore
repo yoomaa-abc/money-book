@@ -1,0 +1,8 @@
+*.p12
+*.pfx
+*.jks
+*.keystore
+.env
+.env.*
+!.env.example
+node_modules/
