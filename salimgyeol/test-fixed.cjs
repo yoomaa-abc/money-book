@@ -26,12 +26,12 @@ async function main(){
  for(const bad of [entry('bad',1,'food','fixed'),entry('bad',1,'maintenance','other'),entry('bad',1,'electricity')]){
   const invalid=structuredClone(ledger);invalid.entries.push(bad);assert.throws(()=>L.validate(invalid));
  }
- const browser=await chromium.launch({executablePath:'C:/Program Files/Google/Chrome/Application/chrome.exe',headless:true,args:['--disable-gpu']});
+ const browser=await chromium.launch({executablePath:process.env.CHROME_PATH||'C:/Program Files/Google/Chrome/Application/chrome.exe',headless:true,args:['--disable-gpu']});
  try{
   const page=await browser.newPage({viewport:{width:390,height:844},deviceScaleFactor:2,isMobile:true,hasTouch:true});
   await page.clock.setFixedTime(new Date(2026,10,10,12));
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
-  await page.goto(pathToFileURL(path.join(__dirname,'assets/index.html')).href);
+  await page.goto(process.env.TEST_URL||pathToFileURL(path.join(__dirname,'assets/index.html')).href);
   await page.evaluate(raw=>localStorage.setItem('dalsseum',raw),JSON.stringify(oldBook));await page.reload();
   const button=name=>page.getByRole('button',{name,exact:true});
   const choose=type=>page.locator('.expense-type label').filter({hasText:type}).click();
@@ -47,8 +47,13 @@ async function main(){
   await choose('고정 지출');assert.equal(await selectCategory.inputValue(),'electricity');
   await selectCategory.selectOption('maintenance');await button('지출 저장').click();
   assert.equal(await selected.locator('.count').innerText(),'1건');
-  assert.equal(await selected.locator('.amt').innerText(),'45,000');
-  assert.match(await selected.locator('.fixed-count').textContent(),/고정지출\s*1건/);
+  assert.equal(await selected.locator('.amt:not(.fixed-amt)').innerText(),'45,000');
+  assert.equal(await selected.locator('.fixed-count').innerText(),'1건');
+  assert.equal(await selected.locator('.fixed-amt').innerText(),'150,000');
+  assert.doesNotMatch(await selected.innerText(),/고정/);
+  assert.match(await selected.getAttribute('aria-label'),/고정지출 1건, 150,000원/);
+  assert.equal(await selected.locator('.fixed-amt').evaluate(el=>getComputedStyle(el).color),'rgb(169, 46, 58)');
+  assert.equal(await page.locator('.fixed-total').innerText(),'고정지출 총액 150,000원');
   assert.equal(await selected.locator('.fixed-count').evaluate(el=>getComputedStyle(el).color),'rgb(169, 46, 58)');
   assert.match(await page.locator('.hero .money').innerText(),/195,000/);
   assert.equal(await page.locator('.entry .fixed-badge').count(),1);
@@ -59,9 +64,11 @@ async function main(){
   assert.equal(await page.locator('#amount').inputValue(),'32,000');assert.equal(await page.locator('#memo').inputValue(),'작성 중인 메모');
   await page.locator('#entryDate').fill('2026-11-11');await button('지출 저장').click();
   assert.equal(await selected.locator('.count').count(),0);
-  assert.match(await selected.locator('.fixed-count').textContent(),/고정지출\s*1건/);
+  assert.equal(await selected.locator('.fixed-amt').innerText(),'32,000');
+  assert.equal(await page.locator('.fixed-total').innerText(),'고정지출 총액 182,000원');
+  assert.equal(await selected.locator('.fixed-count').innerText(),'1건');
   await page.reload();
-  assert.match(await selected.locator('.fixed-count').textContent(),/고정지출\s*1건/);
+  assert.equal(await selected.locator('.fixed-count').innerText(),'1건');
   await page.locator('nav [data-tab=report]').click();await page.getByLabel('지출 구분으로 조회').selectOption('fixed');
   assert.match(await page.locator('.hero .money').innerText(),/182,000/);
   await page.getByLabel('지출 용도로 조회').selectOption('fixed:maintenance');
@@ -84,19 +91,20 @@ async function main(){
   await choose('일반 지출');await button('수정 저장').click();
   assert.equal(await selected.locator('.count').innerText(),'2건');assert.equal(await selected.locator('.fixed-count').count(),0);
   await page.evaluate(raw=>receiveBackup(raw),stored);await button('확인').click();
-  assert.match(await selected.locator('.fixed-count').textContent(),/고정지출\s*1건/);
+  assert.equal(await selected.locator('.fixed-count').innerText(),'1건');
   await button('＋ 새 달력').click();await page.locator('#calendarNameInput').fill('별도 달력');await button('달력 만들기').click();
   assert.equal(await page.locator('.day .fixed-count').count(),0);
   await page.locator('#calendarSelect').selectOption('home');
   assert.equal(await page.locator('.day .fixed-count').count(),2);
   await button('다음 달').click();
+  assert.equal(await page.locator('.fixed-total').innerText(),'고정지출 총액 0원');
   assert.equal(await page.locator('.day .fixed-count').count(),0);
   await button('이번 달').click();
   for(const width of [320,390,600]){
    await page.setViewportSize({width,height:844});
    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth&&Array.from(document.querySelectorAll('.fixed-count')).every(el=>el.scrollWidth<=el.clientWidth)));
   }
-  await page.setViewportSize({width:390,height:1080});await page.addStyleTag({content:'#toast{display:none!important}'});await page.screenshot({path:path.join(__dirname,'build/fixed-calendar.png')});
+  await page.setViewportSize({width:390,height:1080});await page.addStyleTag({content:'#toast{display:none!important}'});require('node:fs').mkdirSync(path.join(__dirname,'build'),{recursive:true});await page.screenshot({path:path.join(__dirname,'build/fixed-calendar.png')});
   await button('＋ 지출 입력').click();await choose('고정 지출');await page.screenshot({path:path.join(__dirname,'build/fixed-form.png')});
   assert.deepEqual(errors,[]);
   console.log('PASS: fixed expense migration, types, day totals, editing, custom items, card/report totals, backups, calendar isolation, and narrow layouts.');
