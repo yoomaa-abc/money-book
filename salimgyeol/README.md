@@ -1,4 +1,4 @@
-# 살림결 1.3.2
+# 살림결 1.3.3
 
 Android 8.0(API 26) 이상을 대상으로 만든 오프라인 지출 가계부입니다. Java Activity에서 앱에 포함한 HTML/CSS/JavaScript를 WebView로 실행합니다. 계정·외부 서버·광고·카드사 연동은 없습니다.
 
@@ -24,7 +24,7 @@ JDK 21, Android SDK Build Tools 35.0.0, Android API 35의 android.jar가 필요�
 ./build.ps1 -JavaHome 'C:/tools/jdk-21' -BuildTools 'C:/Android/sdk/build-tools/35.0.0' -AndroidJar 'C:/Android/sdk/platforms/android-35/android.jar'
 ```
 
-결과는 `build/salimgyeol-1.3.2.apk`입니다. 업데이트 때는 versionCode를 올리고 동일한 서명 키를 유지하세요.
+결과는 `build/salimgyeol-1.3.3.apk`입니다. 업데이트 때는 versionCode를 올리고 동일한 서명 키를 유지하세요.
 
 ## 서명 키
 
@@ -64,3 +64,7 @@ node benchmark.cjs
 
 ## 1.3.2 APK 빌드
 Linux에서는 JDK 21, Android API 35의 `android.jar`, Build Tools 35.0.0을 준비한 뒤 `JAVA_HOME`, `ANDROID_JAR`, `ANDROID_BUILD_TOOLS`, `ANDROID_KEYSTORE`, `ANDROID_KEYSTORE_PASSWORD` 환경변수를 설정하고 `bash build.sh`를 실행하세요. 키와 비밀번호를 저장소에 추가하지 마세요. 기존 서명 키가 없으면 빌드는 중단되며 새 키를 자동 생성하지 않습니다. Windows에서는 같은 서명 관련 환경변수와 위의 `build.ps1` 명령을 사용합니다.
+
+
+## 1.3.3 변경
+상단의 고정지출 합계 문구를 ‘고정’으로 줄였습니다. 금액 계산과 저장 형식은 동일합니다.

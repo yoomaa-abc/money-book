@@ -53,7 +53,7 @@ async function main(){
   assert.doesNotMatch(await selected.innerText(),/고정/);
   assert.match(await selected.getAttribute('aria-label'),/고정지출 1건, 150,000원/);
   assert.equal(await selected.locator('.fixed-amt').evaluate(el=>getComputedStyle(el).color),'rgb(169, 46, 58)');
-  assert.equal(await page.locator('.fixed-total').innerText(),'고정지출 총액 150,000원');
+  assert.equal(await page.locator('.fixed-total').innerText(),'고정 150,000원');
   assert.equal(await selected.locator('.fixed-count').evaluate(el=>getComputedStyle(el).color),'rgb(169, 46, 58)');
   assert.match(await page.locator('.hero .money').innerText(),/195,000/);
   assert.equal(await page.locator('.entry .fixed-badge').count(),1);
@@ -65,7 +65,7 @@ async function main(){
   await page.locator('#entryDate').fill('2026-11-11');await button('지출 저장').click();
   assert.equal(await selected.locator('.count').count(),0);
   assert.equal(await selected.locator('.fixed-amt').innerText(),'32,000');
-  assert.equal(await page.locator('.fixed-total').innerText(),'고정지출 총액 182,000원');
+  assert.equal(await page.locator('.fixed-total').innerText(),'고정 182,000원');
   assert.equal(await selected.locator('.fixed-count').innerText(),'1건');
   await page.reload();
   assert.equal(await selected.locator('.fixed-count').innerText(),'1건');
@@ -97,7 +97,7 @@ async function main(){
   await page.locator('#calendarSelect').selectOption('home');
   assert.equal(await page.locator('.day .fixed-count').count(),2);
   await button('다음 달').click();
-  assert.equal(await page.locator('.fixed-total').innerText(),'고정지출 총액 0원');
+  assert.equal(await page.locator('.fixed-total').innerText(),'고정 0원');
   assert.equal(await page.locator('.day .fixed-count').count(),0);
   await button('이번 달').click();
   for(const width of [320,390,600]){

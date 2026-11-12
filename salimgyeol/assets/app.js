@@ -66,7 +66,7 @@ function render(){monthData=Ledger.summarize(state,month);document.querySelector
 function hero(entries,label,showFixedTotal=false){
  let fixed=0,fixedSum=0,total=0;
  for(const entry of entries){total+=entry.amount;if(Ledger.entryType(entry)==='fixed'){fixed++;fixedSum+=entry.amount;}}
- return `<section class="hero"><div class="eyebrow">${esc(calendarName())} · ${label}</div><div class="money">${won(total)}<small>원</small></div><div class="hero-foot"><span class="pill">총 ${entries.length}건</span><span style="align-self:center">${monthTitle()} · 지출일 기준</span></div>${fixed||showFixedTotal?`<div class="hero-split"><span>일반 ${won(total-fixedSum)}원</span><span class="fixed-total">고정지출 총액 ${won(fixedSum)}원</span></div>`:''}</section>`;
+ return `<section class="hero"><div class="eyebrow">${esc(calendarName())} · ${label}</div><div class="money">${won(total)}<small>원</small></div><div class="hero-foot"><span class="pill">총 ${entries.length}건</span><span style="align-self:center">${monthTitle()} · 지출일 기준</span></div>${fixed||showFixedTotal?`<div class="hero-split"><span>일반 ${won(total-fixedSum)}원</span><span class="fixed-total">고정 ${won(fixedSum)}원</span></div>`:''}</section>`;
 }
 function calendarView(){
  const entries=Ledger.monthly(state,month,'','',monthData),[y,m]=month.split('-').map(Number),first=new Date(y,m-1,1).getDay(),last=new Date(y,m,0).getDate();

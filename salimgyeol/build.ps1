@@ -2,7 +2,7 @@ param(
  [Parameter(Mandatory=$true)][string]$JavaHome,
  [Parameter(Mandatory=$true)][string]$BuildTools,
  [Parameter(Mandatory=$true)][string]$AndroidJar,
- [string]$Output = "$PSScriptRoot/build/salimgyeol-1.3.2.apk"
+ [string]$Output = "$PSScriptRoot/build/salimgyeol-1.3.3.apk"
 )
 $ErrorActionPreference='Stop'
 $env:JAVA_HOME=$JavaHome
