@@ -2,7 +2,7 @@ param(
  [Parameter(Mandatory=$true)][string]$JavaHome,
  [Parameter(Mandatory=$true)][string]$BuildTools,
  [Parameter(Mandatory=$true)][string]$AndroidJar,
- [string]$Output = "$PSScriptRoot/build/salimgyeol-1.3.1.apk"
+ [string]$Output = "$PSScriptRoot/build/salimgyeol-1.3.2.apk"
 )
 $ErrorActionPreference='Stop'
 $env:JAVA_HOME=$JavaHome
@@ -28,13 +28,11 @@ Copy-Item "$taskBuild/base.apk" "$taskBuild/unsigned.apk" -Force
 Check-Native
 & "$BuildTools/zipalign.exe" -f -p 4 "$taskBuild/unsigned.apk" "$taskBuild/aligned.apk"
 Check-Native
-$key="$PSScriptRoot/dalsseum-signing.p12"
-if(!(Test-Path $key)){
- & "$JavaHome/bin/keytool.exe" -genkeypair -keystore $key -storetype PKCS12 -storepass $env:ANDROID_KEYSTORE_PASSWORD -keypass $env:ANDROID_KEYSTORE_PASSWORD -alias dalsseum -keyalg RSA -keysize 3072 -validity 10000 -dname 'CN=Dalsseum, OU=Personal App, O=Dalsseum, C=KR'
- Check-Native
-}
+$key=if($env:ANDROID_KEYSTORE){$env:ANDROID_KEYSTORE}else{"$PSScriptRoot/dalsseum-signing.p12"}
+if(!(Test-Path $key)){throw "Original signing key not found; set ANDROID_KEYSTORE."}
+if(!$env:ANDROID_KEYSTORE_PASSWORD){throw "Set ANDROID_KEYSTORE_PASSWORD privately."}
 New-Item -ItemType Directory -Force (Split-Path $Output) | Out-Null
-& "$BuildTools/apksigner.bat" sign --ks $key --ks-pass pass:ANDROID_KEYSTORE_PASSWORD (set privately) --key-pass pass:ANDROID_KEYSTORE_PASSWORD (set privately) --ks-key-alias dalsseum --out $Output "$taskBuild/aligned.apk"
+& "$BuildTools/apksigner.bat" sign --ks $key --ks-pass env:ANDROID_KEYSTORE_PASSWORD --key-pass env:ANDROID_KEYSTORE_PASSWORD --ks-key-alias dalsseum --out $Output "$taskBuild/aligned.apk"
 Check-Native
 & "$BuildTools/apksigner.bat" verify --verbose $Output
 Check-Native
