@@ -31,11 +31,11 @@ async function main(){
  check(()=>{const a=structuredClone(planned);a.monthlySettings[0].limit=0;assert.equal(M.cardState(a,'2026-10','shinhan').reached,false);});
  check(()=>assert.deepEqual(M.validate(JSON.parse(JSON.stringify(planned))),planned));
  for(const mutate of [a=>a.monthlySettings[0].month='2026-13',a=>a.monthlySettings[0].card='missing',a=>a.monthlySettings[0].payment=-1,a=>a.monthlySettings[0].limit=1.1,a=>a.monthlySettings.push(a.monthlySettings[0])])check(()=>{const a=structuredClone(planned);mutate(a);assert.throws(()=>M.validate(a));});
- const browser=await chromium.launch({executablePath:'C:/Program Files/Google/Chrome/Application/chrome.exe',headless:true,args:['--disable-gpu'],downloadsPath:path.join(__dirname,'build/downloads')});
+ const browser=await chromium.launch({executablePath:process.env.CHROME_PATH||'C:/Program Files/Google/Chrome/Application/chrome.exe',headless:true,args:['--disable-gpu'],downloadsPath:path.join(__dirname,'build/downloads')});
  const page=await browser.newPage({viewport:{width:390,height:844},deviceScaleFactor:2,isMobile:true,hasTouch:true,acceptDownloads:true});
  await page.clock.setFixedTime(new Date(2026,9,22,12));
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
- await page.goto(pathToFileURL(path.join(__dirname,'assets/index.html')).href);
+ await page.goto(process.env.TEST_URL||pathToFileURL(path.join(__dirname,'assets/index.html')).href);
  await page.evaluate(()=>{localStorage.clear();});await page.reload();
  async function add(amount,card='shinhan',category='food'){
   await page.getByRole('button',{name:'＋ 지출 입력'}).click();
@@ -55,10 +55,11 @@ async function main(){
  assert.equal(await page.locator('.entry,.groupdate,.pager').count(),0);
  assert.match(await page.getByRole('region',{name:'용도별 합계'}).innerText(),/식비/);
  assert.match(await page.getByRole('region',{name:'카드별 합계'}).innerText(),/신한카드/);
- await page.getByLabel('카드로 조회').selectOption('samsung');
- assert.match(await page.locator('.hero .money').innerText(),/12,000/);n++;
- await page.getByLabel('지출 용도로 조회').selectOption('food');
- assert.match(await page.locator('.hero .money').innerText(),/^0/);n++;
+ assert.equal(await page.getByLabel('카드로 조회').count(),0);
+ assert.equal(await page.getByLabel('지출 용도로 조회').count(),0);
+ await page.getByRole('button',{name:'식비 지출 내역 보기',exact:true}).click();
+ assert.match(await page.locator('.category-details').innerText(),/300,000원/);n++;
+ await page.getByRole('button',{name:'내역 닫기',exact:true}).click();
  await page.locator('nav [data-tab=calendar]').click();
  await page.locator('.entry').filter({hasText:'100,000원'}).click();
  await page.locator('#amount').fill('90000');await page.locator('#memo').fill('<간식 & 커피>');

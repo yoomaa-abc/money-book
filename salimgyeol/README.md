@@ -1,4 +1,4 @@
-# 살림결 1.3.3
+# 살림결 1.3.4
 
 Android 8.0(API 26) 이상을 대상으로 만든 오프라인 지출 가계부입니다. Java Activity에서 앱에 포함한 HTML/CSS/JavaScript를 WebView로 실행합니다. 계정·외부 서버·광고·카드사 연동은 없습니다.
 
@@ -24,7 +24,7 @@ JDK 21, Android SDK Build Tools 35.0.0, Android API 35의 android.jar가 필요�
 ./build.ps1 -JavaHome 'C:/tools/jdk-21' -BuildTools 'C:/Android/sdk/build-tools/35.0.0' -AndroidJar 'C:/Android/sdk/platforms/android-35/android.jar'
 ```
 
-결과는 `build/salimgyeol-1.3.3.apk`입니다. 업데이트 때는 versionCode를 올리고 동일한 서명 키를 유지하세요.
+결과는 `build/salimgyeol-1.3.4.apk`입니다. 업데이트 때는 versionCode를 올리고 동일한 서명 키를 유지하세요.
 
 ## 서명 키
 
@@ -68,3 +68,9 @@ Linux에서는 JDK 21, Android API 35의 `android.jar`, Build Tools 35.0.0을 �
 
 ## 1.3.3 변경
 상단의 고정지출 합계 문구를 ‘고정’으로 줄였습니다. 금액 계산과 저장 형식은 동일합니다.
+
+
+## 1.3.4 변경
+월별 조회의 용도별 합계에서 항목을 누르면 해당 용도의 날짜별 지출 내역과 금액, 건수, 총액이 합계 아래에 표시됩니다. 현재 선택한 달력·월·지출 구분을 적용합니다. 월별 조회 상단에는 지출 구분만 남기고 지출 용도와 사용 카드 선택칸을 제거했습니다. 내역은 최근 날짜부터 표시하며 50건마다 페이지로 나눕니다. 내역을 선택해 수정할 수 있고 ‘내역 닫기’로 합계 화면으로 돌아갑니다.
+
+기능 검증은 `assets`를 로컬 HTTP 서버로 제공한 뒤 `CHROME_PATH=/path/to/chromium TEST_URL=http://127.0.0.1:8767 node test-report-categories.cjs`로 실행합니다. Playwright가 필요합니다.

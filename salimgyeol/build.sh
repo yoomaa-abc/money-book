@@ -8,7 +8,7 @@ project_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 : "${ANDROID_KEYSTORE_PASSWORD:?Set ANDROID_KEYSTORE_PASSWORD privately}"
 export PATH="$JAVA_HOME/bin:$PATH"
 build_dir="$project_dir/build"
-output="${1:-$build_dir/salimgyeol-1.3.3.apk}"
+output="${1:-$build_dir/salimgyeol-1.3.4.apk}"
 mkdir -p "$build_dir" "$(dirname -- "$output")"
 # Use fresh intermediate directories so deleted classes cannot remain in the APK.
 rm -rf -- "$build_dir/classes" "$build_dir/dex"

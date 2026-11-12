@@ -71,8 +71,8 @@ async function main(){
   assert.equal(await selected.locator('.fixed-count').innerText(),'1건');
   await page.locator('nav [data-tab=report]').click();await page.getByLabel('지출 구분으로 조회').selectOption('fixed');
   assert.match(await page.locator('.hero .money').innerText(),/182,000/);
-  await page.getByLabel('지출 용도로 조회').selectOption('fixed:maintenance');
-  assert.match(await page.locator('.hero .money').innerText(),/150,000/);
+  await page.getByRole('button',{name:'관리비 고정지출 지출 내역 보기',exact:true}).click();
+  assert.match(await page.locator('.category-details').innerText(),/150,000원/);
   await page.getByLabel('지출 구분으로 조회').selectOption('general');
   assert.match(await page.locator('.hero .money').innerText(),/45,000/);
   await page.locator('nav [data-tab=cards]').click();

@@ -26,12 +26,12 @@ async function main(){
  const many=L.bookDefaults();for(let i=0;i<200;i++)many.calendars.push({id:'c'+i,name:'추가달력 '+i,ledger:L.defaults()});
  check(()=>assert.equal(L.validateBook(many).calendars.length,203));
  for(const mutate of [b=>b.calendars.push(b.calendars[0]),b=>b.calendars[1].name=b.calendars[0].name,b=>b.activeCalendar='missing',b=>b.calendars[1].id="bad');alert(1)",b=>b.calendars=[],b=>b.calendars[0].ledger.entries[0].card='missing'])check(()=>{const b=structuredClone(book);mutate(b);assert.throws(()=>L.validateBook(b));});
- const browser=await chromium.launch({executablePath:'C:/Program Files/Google/Chrome/Application/chrome.exe',headless:true,args:['--disable-gpu']});
+ const browser=await chromium.launch({executablePath:process.env.CHROME_PATH||'C:/Program Files/Google/Chrome/Application/chrome.exe',headless:true,args:['--disable-gpu']});
  try{
  const page=await browser.newPage({viewport:{width:390,height:844},deviceScaleFactor:2,isMobile:true,hasTouch:true});
  await page.clock.setFixedTime(new Date(2026,9,22,12));
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
- const url=pathToFileURL(path.join(__dirname,'assets/index.html')).href;
+ const url=process.env.TEST_URL||pathToFileURL(path.join(__dirname,'assets/index.html')).href;
  await page.goto(url);await page.evaluate(()=>localStorage.clear());await page.reload();
  assert.equal(await page.locator('#calendarSelect option:checked').innerText(),'집안 가계부');passed++;
  assert.equal(await page.locator('#calendarSelect option').count(),3);passed++;
@@ -54,10 +54,10 @@ async function main(){
  await page.reload();
  assert.equal(await page.locator('#calendarSelect').inputValue(),'date');assert.match(await page.locator('.hero .money').innerText(),/50,000/);passed++;
  // Filters belong to the selected calendar and reset when switching calendars.
- await page.locator('nav [data-tab=report]').click();await page.getByLabel('지출 용도로 조회').selectOption('cafe');
+ await page.locator('nav [data-tab=report]').click();await page.getByLabel('지출 구분으로 조회').selectOption('fixed');
  assert.match(await page.locator('.hero .money').innerText(),/^0/);passed++;
  await page.locator('#calendarSelect').selectOption('home');
- assert.equal(await page.getByLabel('지출 용도로 조회').inputValue(),'');assert.match(await page.locator('.hero .money').innerText(),/300,000/);passed++;
+ assert.equal(await page.getByLabel('지출 구분으로 조회').inputValue(),'');assert.match(await page.locator('.hero .money').innerText(),/300,000/);passed++;
  // Category edits in one calendar leave other calendars unchanged.
  await page.locator('nav [data-tab=settings]').click();await page.locator('.settingsrow').filter({hasText:'식비'}).getByRole('button',{name:'수정',exact:true}).click();
  await page.locator('#catName').fill('집밥');await page.getByRole('button',{name:'저장',exact:true}).click();
